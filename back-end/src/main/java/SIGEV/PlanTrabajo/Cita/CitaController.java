@@ -3,8 +3,10 @@ package SIGEV.PlanTrabajo.Cita;
 import SIGEV.PlanTrabajo.dto.CitaRequest;
 import SIGEV.PlanTrabajo.Barbero.Barbero;
 import SIGEV.PlanTrabajo.Servicio.Servicio;
+import SIGEV.PlanTrabajo.Sucursal.Sucursal;
 import SIGEV.PlanTrabajo.Barbero.BarberoRepository;
 import SIGEV.PlanTrabajo.Servicio.ServicioRepository;
+import SIGEV.PlanTrabajo.Sucursal.SucursalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,9 @@ public class CitaController {
     @Autowired
     private ServicioRepository servicioRepo;
 
+    @Autowired
+    private SucursalRepository sucursalRepo;
+
     @GetMapping
     public ResponseEntity<Page<Cita>> findAll(@RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "10") int size) {
@@ -44,22 +49,25 @@ public class CitaController {
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CitaRequest req, UriComponentsBuilder uriBuilder) {
-        if (req.getBarberoId() == null || req.getServicioId() == null) {
-            return ResponseEntity.unprocessableEntity().body("barberoId y servicioId son requeridos");
+        if (req.getBarberoId() == null || req.getServicioId() == null || req.getSucursalId() == null) {
+            return ResponseEntity.unprocessableEntity().body("barberoId, servicioId y sucursalId son requeridos");
         }
 
         Optional<Barbero> bOpt = barberoRepo.findById(req.getBarberoId());
         Optional<Servicio> sOpt = servicioRepo.findById(req.getServicioId());
-        if (!bOpt.isPresent() || !sOpt.isPresent()) {
-            return ResponseEntity.unprocessableEntity().body("Barbero o Servicio no existen");
+        Optional<Sucursal> suOpt = sucursalRepo.findById(req.getSucursalId());
+        if (!bOpt.isPresent() || !sOpt.isPresent() || !suOpt.isPresent()) {
+            return ResponseEntity.unprocessableEntity().body("Barbero, Servicio o Sucursal no existen");
         }
 
         Cita c = new Cita();
         c.setFecha(req.getFecha());
         c.setHora(req.getHora());
         c.setCliente(req.getCliente());
+        c.setTelefono(req.getTelefono());
         c.setBarbero(bOpt.get());
         c.setServicio(sOpt.get());
+        c.setSucursal(suOpt.get());
         c.setStatus("pendiente");
 
         Cita saved = citaRepo.save(c);
@@ -76,6 +84,7 @@ public class CitaController {
         if (req.getFecha() != null) prev.setFecha(req.getFecha());
         if (req.getHora() != null) prev.setHora(req.getHora());
         if (req.getCliente() != null) prev.setCliente(req.getCliente());
+        if (req.getTelefono() != null) prev.setTelefono(req.getTelefono());
 
         if (req.getBarberoId() != null) {
             barberoRepo.findById(req.getBarberoId()).ifPresent(prev::setBarbero);
@@ -83,7 +92,9 @@ public class CitaController {
         if (req.getServicioId() != null) {
             servicioRepo.findById(req.getServicioId()).ifPresent(prev::setServicio);
         }
-        // status lo dejamos para endpoints/cron jobs separados si es necesario
+        if (req.getSucursalId() != null) {
+            sucursalRepo.findById(req.getSucursalId()).ifPresent(prev::setSucursal);
+        }
 
         Cita saved = citaRepo.save(prev);
         return ResponseEntity.ok(saved);
