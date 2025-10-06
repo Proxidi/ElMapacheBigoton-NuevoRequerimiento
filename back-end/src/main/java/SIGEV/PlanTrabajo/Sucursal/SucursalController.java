@@ -1,4 +1,4 @@
-package SIGEV.PlanTrabajo.Barbero;
+package SIGEV.PlanTrabajo.Sucursal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -10,35 +10,35 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/barberos")
+@RequestMapping("/api/sucursales")
 @CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"})
-public class BarberoController {
+public class SucursalController {
 
     @Autowired
-    private BarberoRepository repo;
+    private SucursalRepository repo;
 
     @GetMapping
-    public ResponseEntity<Page<Barbero>> all(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<Sucursal>> all(@RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "10") int size) {
-        Pageable p = PageRequest.of(page, size, Sort.by("nombre"));
-        Page<Barbero> result = repo.findAll(p);
+        Pageable p = PageRequest.of(page, size, Sort.by("direccion"));
+        Page<Sucursal> result = repo.findAll(p);
         return ResponseEntity.ok(result);
     }
 
     @PostMapping
-    public ResponseEntity<Barbero> create(@RequestBody Barbero b, UriComponentsBuilder uriBuilder) {
-        Barbero saved = repo.save(b);
-        URI uri = uriBuilder.path("/api/barberos/{id}").buildAndExpand(saved.getId()).toUri();
+    public ResponseEntity<Sucursal> create(@RequestBody Sucursal b, UriComponentsBuilder uriBuilder) {
+        Sucursal saved = repo.save(b);
+        URI uri = uriBuilder.path("/api/sucursales/{id}").buildAndExpand(saved.getId()).toUri();
         return ResponseEntity.created(uri).body(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Barbero> update(@PathVariable Long id, @RequestBody Barbero input) {
-        Optional<Barbero> opt = repo.findById(id);
+    public ResponseEntity<Sucursal> update(@PathVariable Long id, @RequestBody Sucursal input) {
+        Optional<Sucursal> opt = repo.findById(id);
         if (!opt.isPresent()) return ResponseEntity.notFound().build();
-        Barbero prev = opt.get();
-        prev.setNombre(input.getNombre() != null ? input.getNombre() : prev.getNombre());
-        Barbero saved = repo.save(prev);
+        Sucursal prev = opt.get();
+        prev.setDireccion(input.getDireccion() != null ? input.getDireccion() : prev.getDireccion());
+        Sucursal saved = repo.save(prev);
         return ResponseEntity.ok(saved);
     }
 

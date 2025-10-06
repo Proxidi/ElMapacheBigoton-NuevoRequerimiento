@@ -1,22 +1,18 @@
 $(function () {
-  // Variables
   let currentPage = 1;
   const pageSize = 10;
   const tablaId = "tablaBarberos";
   const paginationId = "paginationBarberos";
 
-  // Modal bootstrap
   const modalEl = document.getElementById("modalBarbero");
   const modal = new bootstrap.Modal(modalEl);
 
-  // Helpers
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"'`=\/]/g, function (s) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;' })[s];
     });
   }
 
-  // Cargar página de barberos
   async function cargarBarberos(page = 1) {
     const tbody = document.getElementById(tablaId);
     const placeholder = document.getElementById("placeholder-barbero");
@@ -45,7 +41,6 @@ $(function () {
         tr.innerHTML = `
           <td>${escapeHtml(b.nombre)}</td>
           <td>
-            <button class="btn-action btn-ver-barbero btn-sm me-1" data-id="${b.id}" title="Ver"><i class="fa fa-eye"></i></button>
             <button class="btn-action btn-edit-barbero btn-sm me-1" data-id="${b.id}" title="Editar"><i class="fa fa-pen"></i></button>
             <button class="btn-action btn-delete-barbero btn-sm text-danger" data-id="${b.id}" title="Eliminar"><i class="fa fa-trash"></i></button>
           </td>
@@ -128,14 +123,6 @@ $(function () {
         }
       });
     });
-
-    // View
-    document.querySelectorAll(".btn-ver-barbero").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const id = e.currentTarget.getAttribute("data-id");
-        window.location.href = `/barberos/${id}`; 
-      });
-    });
   }
 
   document.getElementById("formBarbero").addEventListener("submit", async (e) => {
@@ -167,7 +154,6 @@ $(function () {
     }
   });
 
-  // Nuevo barbero button
   document.getElementById("btnNuevoBarbero").addEventListener("click", () => {
     document.getElementById("formBarbero").reset();
     document.getElementById("barberoId").value = "";

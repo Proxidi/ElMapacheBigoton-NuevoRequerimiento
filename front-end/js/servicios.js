@@ -135,12 +135,84 @@ $(function () {
       });
     });
 
+    // --- Detalle en modal ---
+    const modalDetalleEl = document.getElementById('modalDetalleServicio');
+    const modalDetalle = modalDetalleEl ? new bootstrap.Modal(modalDetalleEl) : null;
+
+    function showDetalleSpinner() {
+      const spinner = document.getElementById('detalle-spinner');
+      const content = document.getElementById('detalle-content');
+      const error = document.getElementById('detalle-error');
+      if (spinner) spinner.classList.remove('d-none');
+      if (content) content.classList.add('d-none');
+      if (error) error.classList.add('d-none');
+    }
+
+    function showDetalleContent() {
+      const spinner = document.getElementById('detalle-spinner');
+      const content = document.getElementById('detalle-content');
+      if (spinner) spinner.classList.add('d-none');
+      if (content) content.classList.remove('d-none');
+    }
+
+    function showDetalleError(msg) {
+      const spinner = document.getElementById('detalle-spinner');
+      const content = document.getElementById('detalle-content');
+      const error = document.getElementById('detalle-error');
+      if (spinner) spinner.classList.add('d-none');
+      if (content) content.classList.add('d-none');
+      if (error) {
+        error.textContent = msg || 'Error al cargar el servicio';
+        error.classList.remove('d-none');
+      }
+    }
+
+    function formatCurrencySimple(v) {
+      if (v == null || v === '') return '';
+      const n = Number(v);
+      if (isNaN(n)) return v;
+      return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    }
+
+    // Abrir modal detalle
+    async function openDetalleServicio(id) {
+      if (!modalDetalle) {
+        window.location.href = `servicio-detalle.html?id=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      showDetalleSpinner();
+      modalDetalle.show();
+
+      try {
+        const apiUrl = `http://localhost:8080/api/servicios/${encodeURIComponent(id)}`;
+        const res = await fetch(apiUrl);
+        if (!res.ok) {
+          if (res.status === 404) throw new Error('Servicio no encontrado');
+          throw new Error('Error del servidor');
+        }
+        const s = await res.json();
+
+        document.getElementById('detalle-nombre').textContent = s.nombre ?? '—';
+        document.getElementById('detalle-descripcion').textContent = s.descripcion ?? 'Sin descripción';
+        document.getElementById('detalle-costo').textContent = (s.costo == null || s.costo === '') ? '' : formatCurrencySimple(s.costo);
+
+        showDetalleContent();
+      } catch (err) {
+        console.error('Error cargando detalle de servicio:', err);
+        showDetalleError(err.message || 'No se pudo cargar el servicio.');
+      }
+    }
+
+
     document.querySelectorAll(".btn-ver-servicio").forEach(btn => {
+      btn.removeEventListener?.("click", undefined);
       btn.addEventListener("click", (e) => {
         const id = e.currentTarget.getAttribute("data-id");
-        window.location.href = `/servicios/${id}`;
+        openDetalleServicio(id);
       });
     });
+
   }
 
   document.getElementById("formServicio").addEventListener("submit", async (e) => {
