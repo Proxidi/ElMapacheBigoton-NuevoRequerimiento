@@ -5,7 +5,7 @@ $(function () {
   const paginationId = "paginationBarberos";
 
   const modalEl = document.getElementById("modalBarbero");
-  const modal = new bootstrap.Modal(modalEl);
+  const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
 
   function escapeHtml(str) {
     return String(str ?? "").replace(/[&<>"'`=\/]/g, function (s) {
@@ -38,13 +38,20 @@ $(function () {
       tbody.innerHTML = "";
       items.forEach(b => {
         const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(b.nombre)}</td>
-          <td>
-            <button class="btn-action btn-edit-barbero btn-sm me-1" data-id="${b.id}" title="Editar"><i class="fa fa-pen"></i></button>
-            <button class="btn-action btn-delete-barbero btn-sm text-danger" data-id="${b.id}" title="Eliminar"><i class="fa fa-trash"></i></button>
-          </td>
+        tr.dataset.id = b.id ?? "";
+        tr.dataset.nombre = b.nombre ?? "";
+
+        const tdNombre = document.createElement("td");
+        tdNombre.textContent = b.nombre ?? "";
+
+        const tdActions = document.createElement("td");
+        tdActions.innerHTML = `
+          <button class="btn-action btn-edit-barbero btn-sm me-1" data-id="${b.id}" title="Editar"><i class="fa fa-pen"></i></button>
+          <button class="btn-action btn-delete-barbero btn-sm text-danger" data-id="${b.id}" title="Eliminar"><i class="fa fa-trash"></i></button>
         `;
+
+        tr.appendChild(tdNombre);
+        tr.appendChild(tdActions);
         tbody.appendChild(tr);
       });
 
@@ -53,6 +60,7 @@ $(function () {
     } catch (err) {
       console.error("Error cargando barberos:", err);
       if (placeholder) {
+        const tbody = document.getElementById(tablaId);
         tbody.innerHTML = "";
         tbody.appendChild(placeholder);
         placeholder.innerHTML = `<td colspan="2" class="text-center text-danger">Error al cargar. Reintenta.</td>`;
@@ -62,6 +70,7 @@ $(function () {
 
   function renderPagination(totalPages, activePage) {
     const pagination = document.getElementById(paginationId);
+    if (!pagination) return;
     pagination.innerHTML = "";
     if (totalPages <= 1) return;
 
@@ -92,8 +101,9 @@ $(function () {
   }
 
   function attachRowListeners() {
-    // Delete
+    // Eliminar
     document.querySelectorAll(".btn-delete-barbero").forEach(btn => {
+      btn.removeEventListener?.("click", undefined);
       btn.addEventListener("click", async (e) => {
         const id = e.currentTarget.getAttribute("data-id");
         if (!confirm("Eliminar este barbero?")) return;
@@ -105,61 +115,67 @@ $(function () {
       });
     });
 
-    // Edit
+    // Editar
     document.querySelectorAll(".btn-edit-barbero").forEach(btn => {
-      btn.addEventListener("click", async (e) => {
+      btn.removeEventListener?.("click", undefined);
+      btn.addEventListener("click", (e) => {
         const id = e.currentTarget.getAttribute("data-id");
-        try {
-          const res = await fetch(`http://localhost:8080/api/barberos/${id}`);
-          if (!res.ok) throw new Error();
-          const b = await res.json();
-          document.getElementById("barberoId").value = b.id ?? "";
-          document.getElementById("barberoNombre").value = b.nombre ?? "";
-          modalEl.querySelector(".modal-title").textContent = "Editar barbero";
-          modal.show();
-        } catch (err) {
-          console.error("No se pudo cargar barbero", err);
-          alert("Error al cargar barbero");
-        }
+        const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+        const nombre = row ? row.dataset.nombre : "";
+        const inputId = document.getElementById("barberoId");
+        const inputNombre = document.getElementById("barberoNombre");
+        if (inputId) inputId.value = id ?? "";
+        if (inputNombre) inputNombre.value = nombre ?? "";
+        if (modalEl) modalEl.querySelector(".modal-title").textContent = "Editar barbero";
+        if (modal) modal.show();
       });
     });
   }
 
-  document.getElementById("formBarbero").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = document.getElementById("barberoId").value || null;
-    const payload = { nombre: document.getElementById("barberoNombre").value };
+  const form = document.getElementById("formBarbero");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("barberoId").value || null;
+      const nombre = document.getElementById("barberoNombre").value ?? "";
+      const payload = { nombre };
 
-    try {
-      const url = id ? `http://localhost:8080/api/barberos/${id}` : "http://localhost:8080/api/barberos";
-      const method = id ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        modal.hide();
-        document.getElementById("formBarbero").reset();
-        document.getElementById("barberoId").value = "";
-        cargarBarberos(1);
-      } else {
-        const text = await res.text();
-        console.error("Error guardando barbero:", text);
-        alert("No se pudo guardar el barbero");
+      try {
+        const url = id ? `http://localhost:8080/api/barberos/${encodeURIComponent(id)}` : "http://localhost:8080/api/barberos";
+        const method = id ? "PUT" : "POST";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          if (modal) modal.hide();
+          form.reset();
+          const idEl = document.getElementById("barberoId");
+          if (idEl) idEl.value = "";
+          cargarBarberos(1);
+        } else {
+          const text = await res.text();
+          console.error("Error guardando barbero:", text);
+          alert("No se pudo guardar el barbero");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error al guardar barbero");
       }
-    } catch (err) {
-      console.error(err);
-      alert("Error al guardar barbero");
-    }
-  });
+    });
+  }
 
-  document.getElementById("btnNuevoBarbero").addEventListener("click", () => {
-    document.getElementById("formBarbero").reset();
-    document.getElementById("barberoId").value = "";
-    modalEl.querySelector(".modal-title").textContent = "Nuevo barbero";
-    modal.show();
-  });
+  const btnNuevo = document.getElementById("btnNuevoBarbero");
+  if (btnNuevo) {
+    btnNuevo.addEventListener("click", () => {
+      if (form) form.reset();
+      const idEl = document.getElementById("barberoId");
+      if (idEl) idEl.value = "";
+      if (modalEl) modalEl.querySelector(".modal-title").textContent = "Nuevo barbero";
+      if (modal) modal.show();
+    });
+  }
 
   cargarBarberos(1);
 });
