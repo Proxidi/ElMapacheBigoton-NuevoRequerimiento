@@ -38,6 +38,7 @@ $(function () {
       tbody.innerHTML = "";
       items.forEach(b => {
         const tr = document.createElement("tr");
+        // guardamos en dataset para editar sin GET
         tr.dataset.id = b.id ?? "";
         tr.dataset.nombre = b.nombre ?? "";
 
@@ -101,7 +102,7 @@ $(function () {
   }
 
   function attachRowListeners() {
-    // Eliminar
+    // Delete
     document.querySelectorAll(".btn-delete-barbero").forEach(btn => {
       btn.removeEventListener?.("click", undefined);
       btn.addEventListener("click", async (e) => {
@@ -115,11 +116,12 @@ $(function () {
       });
     });
 
-    // Editar
+    // Edit (sin GET por id; usamos dataset)
     document.querySelectorAll(".btn-edit-barbero").forEach(btn => {
       btn.removeEventListener?.("click", undefined);
       btn.addEventListener("click", (e) => {
         const id = e.currentTarget.getAttribute("data-id");
+        // buscamos la fila por dataset.id (CSS.escape por seguridad)
         const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
         const nombre = row ? row.dataset.nombre : "";
         const inputId = document.getElementById("barberoId");
